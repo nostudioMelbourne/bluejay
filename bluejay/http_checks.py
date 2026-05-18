@@ -79,6 +79,7 @@ def add_tls_details(result: dict) -> None:
 def inspect_tls(hostname: str, port: int = 443) -> dict:
     try:
         context = ssl.create_default_context()
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
         with socket.create_connection((hostname, port), timeout=HTTP_TIMEOUT_SECONDS) as sock:
             with context.wrap_socket(sock, server_hostname=hostname) as wrapped:
                 certificate = wrapped.getpeercert()
