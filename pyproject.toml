@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bluejay-security"
+version = "0.1.0"
+description = "Local LLM-powered defensive security assistant for authorised environments."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Blue Jay contributors" }
+]
+keywords = ["security", "cli", "nmap", "ollama", "defensive-security"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+]
+dependencies = [
+  "rich>=13.7",
+  "prompt_toolkit>=3.0.43",
+]
+
+[project.scripts]
+bluejay = "bluejay.cli:main"
+
+[tool.setuptools]
+packages = ["bluejay"]

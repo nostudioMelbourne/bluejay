@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+include CONTRIBUTING.md
+include SECURITY.md
+include ROADMAP.md
+include requirements.txt
+include allowed_targets.txt
+include Modelfile
+include Modelfile.analysis
+include Modelfile.explain
+recursive-include tests *.py

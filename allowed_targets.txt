@@ -1,0 +1,8 @@
+# Blue Jay authorised scan targets
+# Add one target per line.
+# Public targets must be listed here before /scan, /vuln, or /web will run.
+
+scanme.nmap.org
+localhost
+127.0.0.1
+yummytummy.nostudio.com.au

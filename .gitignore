@@ -1,0 +1,38 @@
+# Generated output
+reports/*
+scans/*
+logs/*
+chats/*
+data/*
+
+# Keep folders
+!reports/.gitkeep
+!scans/.gitkeep
+!logs/.gitkeep
+!chats/.gitkeep
+!data/.gitkeep
+
+# Local/env files
+.env
+.env.*
+!.env.example
+.DS_Store
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Editor files
+.idea/
+.vscode/
