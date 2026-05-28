@@ -6,6 +6,7 @@ It uses Python, Ollama, a custom Modelfile, and Nmap to turn raw technical outpu
 
 ## Repository Status
 
+- Public GitHub project: issues and pull requests are welcome
 - License: MIT
 - Python: 3.10+
 - CI: `python -m compileall app.py bluejay tests` and `python -m unittest discover`
@@ -869,25 +870,23 @@ Possible future commands:
 /check-web logs/example-nginx-access.log
 ```
 
-## Portfolio Notes
+## Project Goals
 
-Blue Jay demonstrates practical skills across:
+Blue Jay is a defensive, local-first security assistant. It is built to help users:
 
-- Python scripting
-- Local AI tooling
-- Prompt engineering
-- Cyber security fundamentals
-- Network scanning
-- Evidence modelling
-- Structured findings
-- SQLite data modelling
-- Log analysis
-- Defensive security thinking
-- Tool safety design
-- Markdown report generation
-- Terminal application design
+- Understand scan, log, DNS, and web-check output
+- Preserve evidence in structured findings
+- Track exposure and remediation work over time
+- Learn safe security workflows on systems they own or are authorised to assess
+- Collaborate on practical tooling that keeps security data local
 
-The main goal is not to automate hacking. The goal is to help users understand security data, identify exposure, and make safer defensive decisions.
+Blue Jay is not intended to automate unauthorised testing or offensive activity. Contributions should keep the project focused on defensive analysis, evidence quality, explainability, and clear safety boundaries.
+
+## Contributing
+
+This repository is public and open to collaboration. Bug reports, documentation improvements, tests, and focused feature pull requests are welcome.
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and [SECURITY.md](SECURITY.md) for responsible-use guidance.
 
 ## Disclaimer
 

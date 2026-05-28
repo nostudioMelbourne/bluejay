@@ -1,4 +1,5 @@
 import shlex
+from collections.abc import Callable
 from pathlib import Path
 
 from .chat import create_chat_path
@@ -45,6 +46,48 @@ from .cmd_workflows import (
 from .ui import print_banner
 
 
+CommandHandler = Callable[[list[str]], None]
+NoArgCommandHandler = Callable[[], None]
+
+
+NO_ARG_COMMANDS: dict[str, NoArgCommandHandler] = {
+    "/": cmd_help,
+    "/help": cmd_help,
+    "/files": cmd_files,
+    "/allowed": cmd_allowed,
+    "/status": cmd_status,
+    "/model": cmd_model,
+    "/reports": cmd_reports,
+    "/about": cmd_about,
+}
+
+ARG_COMMANDS: dict[str, CommandHandler] = {
+    "/config": cmd_config,
+    "/dig": cmd_dig,
+    "/web": cmd_web,
+    "/site": cmd_site,
+    "/nuclei": cmd_nuclei,
+    "/profile": cmd_profile,
+    "/scan": cmd_scan,
+    "/vuln": cmd_vuln,
+    "/analyse": cmd_analyse,
+    "/assets": cmd_assets,
+    "/asset": cmd_asset,
+    "/history": cmd_history,
+    "/findings": cmd_findings,
+    "/finding": cmd_finding,
+    "/triage": cmd_triage,
+    "/next": cmd_next,
+    "/remediate": cmd_remediate,
+    "/explain": cmd_explain,
+    "/retest": cmd_retest,
+    "/baseline": cmd_baseline,
+    "/diff": cmd_diff,
+    "/report": cmd_report,
+    "/view": cmd_view,
+}
+
+
 def handle_command(command_line: str, chat_path: Path) -> tuple[bool, Path]:
     try:
         parts = shlex.split(command_line)
@@ -58,20 +101,10 @@ def handle_command(command_line: str, chat_path: Path) -> tuple[bool, Path]:
     command = parts[0]
     args = parts[1:]
 
-    if command == "/":
-        cmd_help()
-    elif command == "/help":
-        cmd_help()
-    elif command == "/files":
-        cmd_files()
-    elif command == "/allowed":
-        cmd_allowed()
-    elif command == "/status":
-        cmd_status()
-    elif command == "/model":
-        cmd_model()
-    elif command == "/config":
-        cmd_config(args)
+    if command in NO_ARG_COMMANDS:
+        NO_ARG_COMMANDS[command]()
+    elif command in ARG_COMMANDS:
+        ARG_COMMANDS[command](args)
     elif command == "/newchat":
         chat_path = create_chat_path()
         print(f"Started new chat transcript: {chat_path}")
@@ -82,61 +115,13 @@ def handle_command(command_line: str, chat_path: Path) -> tuple[bool, Path]:
             print(f"Resumed chat transcript: {chat_path}")
     elif command == "/chatlog":
         cmd_chatlog(chat_path)
-    elif command == "/dig":
-        cmd_dig(args)
-    elif command == "/web":
-        cmd_web(args)
-    elif command == "/site":
-        cmd_site(args)
-    elif command == "/nuclei":
-        cmd_nuclei(args)
-    elif command == "/profile":
-        cmd_profile(args)
-    elif command == "/scan":
-        cmd_scan(args)
-    elif command == "/vuln":
-        cmd_vuln(args)
-    elif command == "/analyse":
-        cmd_analyse(args)
-    elif command == "/reports":
-        cmd_reports()
-    elif command == "/assets":
-        cmd_assets(args)
-    elif command == "/asset":
-        cmd_asset(args)
-    elif command == "/history":
-        cmd_history(args)
-    elif command == "/findings":
-        cmd_findings(args)
-    elif command == "/finding":
-        cmd_finding(args)
-    elif command == "/triage":
-        cmd_triage(args)
-    elif command == "/next":
-        cmd_next(args)
-    elif command == "/remediate":
-        cmd_remediate(args)
-    elif command == "/explain":
-        cmd_explain(args)
-    elif command == "/retest":
-        cmd_retest(args)
-    elif command == "/baseline":
-        cmd_baseline(args)
-    elif command == "/diff":
-        cmd_diff(args)
     elif command == "/resolve":
         cmd_set_finding_status(args, "resolved", "resolve")
     elif command == "/reopen":
         cmd_set_finding_status(args, "open", "reopen")
-    elif command == "/report":
-        cmd_report(args)
-    elif command == "/view":
-        cmd_view(args)
     elif command == "/clear":
         cmd_clear()
         print_banner()
-    elif command == "/about":
-        cmd_about()
     elif command == "/exit":
         print("Blue Jay closed.")
         return False, chat_path

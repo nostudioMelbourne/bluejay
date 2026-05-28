@@ -10,6 +10,7 @@ from .utils import json_dumps, json_loads, now_timestamp, slugify
 
 
 def db_connect() -> sqlite3.Connection:
+    DB_FILE.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_FILE)
     connection.row_factory = sqlite3.Row
     return connection
@@ -254,13 +255,14 @@ def make_finding(
 ) -> dict:
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
     finding_id = f"GP-{timestamp}-{slugify(target)[:24]}"
+    created_at = now_timestamp()
 
     return {
         "id": finding_id,
-        "created_at": now_timestamp(),
-        "updated_at": now_timestamp(),
-        "first_seen": now_timestamp(),
-        "last_seen": now_timestamp(),
+        "created_at": created_at,
+        "updated_at": created_at,
+        "first_seen": created_at,
+        "last_seen": created_at,
         "status": "open",
         "target": target,
         "title": title,
@@ -292,6 +294,7 @@ def write_findings(findings: list[dict]) -> None:
 
     append_findings(findings)
 
+    FINDINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
     with FINDINGS_FILE.open("w", encoding="utf-8") as findings_file:
         for finding in findings:
             findings_file.write(json.dumps(finding, sort_keys=True) + "\n")
@@ -397,6 +400,7 @@ def append_findings(findings: list[dict]) -> None:
                 ),
             )
 
+    FINDINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
     with FINDINGS_FILE.open("a", encoding="utf-8") as findings_file:
         for finding in findings:
             findings_file.write(json.dumps(finding, sort_keys=True) + "\n")

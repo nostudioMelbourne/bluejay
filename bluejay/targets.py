@@ -1,11 +1,12 @@
 import re
 from ipaddress import ip_address
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 from .constants import ALLOWED_TARGETS_FILE
 
 
 CONTROL_CHARACTER_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
+TARGET_DELIMITERS = {"/", "\\", ":", "?", "#", "@"}
 
 
 def has_unsafe_characters(value: str) -> bool:
@@ -68,7 +69,10 @@ def normalize_target(target: str) -> str | None:
     except ValueError:
         pass
 
-    if any(character in clean_target for character in ["/", "\\", ":", "?", "#", "@"]):
+    if re.fullmatch(r"[0-9.]+", clean_target):
+        return None
+
+    if any(character in clean_target for character in TARGET_DELIMITERS):
         return None
 
     if clean_target == "localhost" or is_valid_hostname(clean_target):
@@ -125,7 +129,7 @@ def format_netloc(hostname: str, port: int | None = None) -> str:
 def normalize_web_urls(raw_target: str) -> list[str] | None:
     raw_target = raw_target.strip()
 
-    if has_unsafe_characters(raw_target):
+    if not raw_target or has_unsafe_characters(raw_target):
         return None
 
     if "://" not in raw_target:
@@ -137,9 +141,9 @@ def normalize_web_urls(raw_target: str) -> list[str] | None:
         netloc = format_netloc(clean_target)
         return [f"https://{netloc}/", f"http://{netloc}/"]
 
-    parsed = urlparse(raw_target)
+    parsed = parse_allowed_web_url(raw_target)
 
-    if not is_allowed_web_url(raw_target):
+    if parsed is None:
         return None
 
     clean_host = normalize_target(parsed.hostname)
@@ -156,31 +160,38 @@ def normalize_web_urls(raw_target: str) -> list[str] | None:
     return [f"{parsed.scheme}://{netloc}{path}"]
 
 
-def is_allowed_web_url(raw_url: str, allow_query: bool = False) -> bool:
+def parse_allowed_web_url(raw_url: str, allow_query: bool = False) -> ParseResult | None:
     raw_url = raw_url.strip()
 
     if not raw_url or has_unsafe_characters(raw_url):
-        return False
+        return None
 
     parsed = urlparse(raw_url)
 
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-        return False
+        return None
 
     clean_host = normalize_target(parsed.hostname)
 
     if clean_host is None or not is_allowed_target(clean_host):
-        return False
+        return None
 
     if parsed.username or parsed.password or parsed.fragment:
-        return False
+        return None
 
     if parsed.query and not allow_query:
-        return False
+        return None
 
     try:
-        parsed.port
+        port = parsed.port
     except ValueError:
-        return False
+        return None
 
-    return True
+    if port is not None and port < 1:
+        return None
+
+    return parsed
+
+
+def is_allowed_web_url(raw_url: str, allow_query: bool = False) -> bool:
+    return parse_allowed_web_url(raw_url, allow_query=allow_query) is not None

@@ -56,7 +56,7 @@ def finding_snapshot(finding: dict) -> dict:
 
 
 def save_baseline(target: str | None) -> dict:
-    BASELINES_DIR.mkdir(exist_ok=True)
+    BASELINES_DIR.mkdir(parents=True, exist_ok=True)
     scope = baseline_scope(target)
     findings = [finding_snapshot(finding) for finding in findings_for_scope(scope)]
     snapshot = {
@@ -198,7 +198,7 @@ def compare_to_baseline(target: str | None) -> dict | None:
 
 
 def save_diff_report(diff: dict) -> Path:
-    BASELINES_DIR.mkdir(exist_ok=True)
+    BASELINES_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     scope = str(diff.get("scope", "all"))
     path = BASELINES_DIR / f"diff-{slugify(scope)}-{timestamp}.json"

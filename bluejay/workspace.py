@@ -11,12 +11,12 @@ from .storage import init_database
 
 
 def ensure_dirs() -> None:
-    SCANS_DIR.mkdir(exist_ok=True)
-    LOGS_DIR.mkdir(exist_ok=True)
-    REPORTS_DIR.mkdir(exist_ok=True)
-    CHATS_DIR.mkdir(exist_ok=True)
-    DATA_DIR.mkdir(exist_ok=True)
-    BASELINES_DIR.mkdir(exist_ok=True)
+    SCANS_DIR.mkdir(parents=True, exist_ok=True)
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    CHATS_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    BASELINES_DIR.mkdir(parents=True, exist_ok=True)
 
     if not ALLOWED_TARGETS_FILE.exists():
         ALLOWED_TARGETS_FILE.write_text(
