@@ -28,6 +28,13 @@ __pycache__/
 .coverage
 htmlcov/
 
+# Browser exports
+*.webarchive
+*.mhtml
+*.mht
+*_files/
+nostudioMelbourne (no studio).html
+
 # Python packaging
 build/
 dist/
