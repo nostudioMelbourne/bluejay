@@ -245,10 +245,13 @@ Options:
 - `top <count>`: scan the top N ports, from `1` to `5000`.
 - `udp`: use UDP scan mode.
 - `tcp`: use TCP scan mode. This is the default.
-- `service`: enable service/version detection.
+- `service` or `-sV`: enable service/version detection.
 - `no-service`: disable service/version detection.
+- `version-intensity <0-9>`: tune Nmap service/version probes.
+- `version-light`: shortcut for `version-intensity 2`.
+- `version-all`: shortcut for `version-intensity 9`.
 - `reason`: include Nmap reason output.
-- `timing <value>`: use `paranoid`, `sneaky`, `polite`, `normal`, `aggressive`, or `0` to `4`.
+- `timing <value>` or `-T0` to `-T4`: use `paranoid`, `sneaky`, `polite`, `normal`, `aggressive`, or `0` to `4`.
 
 Examples:
 
@@ -256,6 +259,7 @@ Examples:
 /scan localhost
 /scan localhost quiet
 /scan 192.168.1.1 quick
+/scan localhost -sV -T0 version-intensity 7
 /scan localhost ports 22,80,443 reason
 /scan 192.168.1.1 top 1000 no-service timing polite
 /scan 192.168.1.1 quick udp top 50

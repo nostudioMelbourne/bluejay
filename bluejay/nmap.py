@@ -19,6 +19,7 @@ class NmapScanOptions:
     ports: str | None = None
     top_ports: int | None = None
     service_detection: bool | None = None
+    version_intensity: int | None = None
     reason: bool = False
     timing: str | None = None
 
@@ -234,9 +235,13 @@ def effective_scan_options(scan_profile: str, options: NmapScanOptions | None = 
             ports=options.ports,
             top_ports=options.top_ports,
             service_detection=options.service_detection,
+            version_intensity=options.version_intensity,
             reason=options.reason,
             timing=options.timing,
         )
+
+    if result.version_intensity is not None and result.service_detection is not False:
+        result.service_detection = True
 
     if result.top_ports is None and result.ports is None:
         if scan_profile == "quiet":
@@ -250,6 +255,9 @@ def effective_scan_options(scan_profile: str, options: NmapScanOptions | None = 
 
     if result.service_detection is None:
         result.service_detection = scan_profile != "quiet"
+
+    if not result.service_detection:
+        result.version_intensity = None
 
     if result.timing is None:
         result.timing = "2" if scan_profile == "quiet" else "3"
@@ -275,6 +283,8 @@ def build_nmap_command(
 
     if effective_options.service_detection:
         command.append("-sV")
+        if effective_options.version_intensity is not None:
+            command.extend(["--version-intensity", str(effective_options.version_intensity)])
 
     command.append(f"-T{effective_options.timing}")
 
@@ -299,7 +309,10 @@ def build_nmap_command(
 
     protocol_label = "UDP" if effective_options.protocol == "udp" else "TCP"
     port_label = f"ports {effective_options.ports}" if effective_options.ports else f"top {effective_options.top_ports} ports"
-    service_label = "with service detection" if effective_options.service_detection else "without service detection"
+    if effective_options.service_detection and effective_options.version_intensity is not None:
+        service_label = f"with service detection, version intensity {effective_options.version_intensity}"
+    else:
+        service_label = "with service detection" if effective_options.service_detection else "without service detection"
     reason_label = ", reason output enabled" if effective_options.reason else ""
 
     if scan_profile == "quiet":
@@ -314,6 +327,7 @@ def build_nmap_command(
         "ports": effective_options.ports or "",
         "top_ports": effective_options.top_ports,
         "service_detection": effective_options.service_detection,
+        "version_intensity": effective_options.version_intensity,
         "reason": effective_options.reason,
         "timing": effective_options.timing,
     }

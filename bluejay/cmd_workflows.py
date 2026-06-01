@@ -133,12 +133,18 @@ def print_scan_usage() -> None:
     print("  tcp                  Use TCP scan mode (default)")
     print("  ports <list>         Scan explicit ports, for example 22,80,443 or 1-1024")
     print("  top <count>          Scan top N ports, from 1 to 5000")
-    print("  service              Enable service/version detection")
+    print("  service, -sV         Enable service/version detection")
     print("  no-service           Disable service/version detection")
+    print("  version-intensity <0-9>")
+    print("                       Tune Nmap service/version probes")
+    print("  version-light        Shortcut for version-intensity 2")
+    print("  version-all          Shortcut for version-intensity 9")
     print("  reason               Include Nmap reason output")
-    print("  timing <0-4|name>    paranoid, sneaky, polite, normal, or aggressive")
+    print("  timing <0-4|name>, -T0..-T4")
+    print("                       paranoid, sneaky, polite, normal, or aggressive")
     print("Examples:")
     print("  /scan localhost quiet")
+    print("  /scan localhost -sV version-intensity 7")
     print("  /scan localhost ports 22,80,443 reason")
     print("  /scan 192.168.1.1 top 1000 no-service timing polite")
     print("  /scan 192.168.1.1 quick udp top 50")
@@ -168,11 +174,41 @@ def parse_scan_options(args: list[str]) -> tuple[str, str, NmapScanOptions] | No
         elif token == "tcp":
             options.protocol = "tcp"
             index += 1
-        elif token == "service":
+        elif token in {"service", "-sv", "--service-version"}:
             options.service_detection = True
             index += 1
-        elif token == "no-service":
+        elif token in {"no-service", "--no-service"}:
             options.service_detection = False
+            index += 1
+        elif token in {"version-light", "--version-light"}:
+            options.service_detection = True
+            options.version_intensity = 2
+            index += 1
+        elif token in {"version-all", "--version-all"}:
+            options.service_detection = True
+            options.version_intensity = 9
+            index += 1
+        elif token in {"version-intensity", "--version-intensity"}:
+            if index + 1 >= len(args):
+                print("Missing value after 'version-intensity'.")
+                return None
+
+            intensity_value = args[index + 1]
+            if not intensity_value.isdigit() or not 0 <= int(intensity_value) <= 9:
+                print("Version intensity must be a number from 0 to 9.")
+                return None
+
+            options.service_detection = True
+            options.version_intensity = int(intensity_value)
+            index += 2
+        elif token.startswith("version-intensity=") or token.startswith("--version-intensity="):
+            intensity_value = token.split("=", 1)[1]
+            if not intensity_value.isdigit() or not 0 <= int(intensity_value) <= 9:
+                print("Version intensity must be a number from 0 to 9.")
+                return None
+
+            options.service_detection = True
+            options.version_intensity = int(intensity_value)
             index += 1
         elif token == "reason":
             options.reason = True
@@ -221,7 +257,7 @@ def parse_scan_options(args: list[str]) -> tuple[str, str, NmapScanOptions] | No
             options.top_ports = int(top_value)
             options.ports = None
             index += 1
-        elif token == "timing":
+        elif token in {"timing", "--timing", "-t"}:
             if index + 1 >= len(args):
                 print("Missing value after 'timing'.")
                 return None
@@ -233,6 +269,14 @@ def parse_scan_options(args: list[str]) -> tuple[str, str, NmapScanOptions] | No
 
             options.timing = timing
             index += 2
+        elif len(token) == 3 and token.startswith("-t"):
+            timing = normalize_timing(token[2:])
+            if timing is None:
+                print("Timing must be 0-4, paranoid, sneaky, polite, normal, or aggressive.")
+                return None
+
+            options.timing = timing
+            index += 1
         elif token.startswith("timing="):
             timing = normalize_timing(token.split("=", 1)[1])
             if timing is None:
