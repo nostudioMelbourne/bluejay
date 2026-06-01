@@ -10,6 +10,7 @@ from pathlib import Path
 from .constants import DIG_TIMEOUT_SECONDS, LOGS_DIR, NMAP_TIMEOUT_SECONDS, SCANS_DIR
 from .storage import extract_cves, make_finding, record_findings, record_scan, upsert_asset
 from .targets import is_allowed_target, is_valid_hostname, normalize_target
+from .tooling import missing_tool_message
 from .utils import slugify
 
 
@@ -388,9 +389,7 @@ def run_safe_nmap_scan(
             timeout=NMAP_TIMEOUT_SECONDS,
         )
     except FileNotFoundError:
-        print("Error: Nmap is not installed or not available in PATH.")
-        print("Install it with:")
-        print("  brew install nmap")
+        print(f"Error: {missing_tool_message('nmap')}")
         return None
     except subprocess.TimeoutExpired:
         print("Nmap timed out before the scan completed.")
@@ -451,8 +450,10 @@ def run_dig_lookup(target: str) -> Path | None:
                 sections.append(f"stderr: {result.stderr.strip()}")
             sections.append("")
     else:
-        sections.append("dig was not found in PATH. Falling back to local resolver output.")
-        sections.append("")
+        guidance = missing_tool_message("dig", optional=True)
+        print(guidance)
+        print("Using the local DNS resolver instead.")
+        sections.extend([guidance, "Falling back to local resolver output.", ""])
         try:
             addresses = sorted(
                 {

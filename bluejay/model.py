@@ -10,6 +10,7 @@ from .constants import (
     MODEL_NAME,
     OLLAMA_TIMEOUT_SECONDS,
 )
+from .tooling import missing_tool_message
 
 
 ANSI_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
@@ -135,7 +136,7 @@ def run_ollama(prompt: str, model_name: str | None = None) -> str:
             timeout=OLLAMA_TIMEOUT_SECONDS,
         )
     except FileNotFoundError:
-        return "Error: Ollama is not installed or not available in PATH."
+        return f"Error: {missing_tool_message('ollama')}"
     except subprocess.TimeoutExpired:
         return f"Error: Ollama model '{active_model}' timed out while generating the report."
 

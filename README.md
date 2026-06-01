@@ -14,6 +14,15 @@ It uses Python, Ollama, a custom Modelfile, and Nmap to turn raw technical outpu
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and [SECURITY.md](SECURITY.md) for responsible-use and vulnerability-reporting guidance.
 
+## Quickstart
+
+```bash
+pip install -r requirements.txt
+python -m bluejay
+```
+
+Once running, try `/status` as a safe first command. Only scan targets you are authorised to test.
+
 ## Overview
 
 Blue Jay helps users understand:
