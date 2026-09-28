@@ -41,12 +41,16 @@ def cmd_repo(args: list[str]) -> None:
 
 
 def cmd_dig(args: list[str]) -> None:
-    if len(args) != 1:
-        print("Usage: /dig <domain>")
+    if len(args) not in {1, 2} or (len(args) == 2 and args[1].lower() not in {"advanced", "all"}):
+        print("Usage: /dig <domain> [advanced|all]")
         print("Example: /dig example.com")
+        print("Example: /dig example.com advanced")
         return
 
-    dns_path = run_dig_lookup(args[0])
+    if len(args) == 2:
+        dns_path = run_dig_lookup(args[0], mode=args[1].lower())
+    else:
+        dns_path = run_dig_lookup(args[0])
 
     if dns_path is None:
         return
