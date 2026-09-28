@@ -1,6 +1,11 @@
 import unittest
 
-from bluejay.targets import is_allowed_web_url, normalize_target, normalize_web_urls
+from bluejay.targets import (
+    is_allowed_web_url,
+    normalize_decoy_list,
+    normalize_target,
+    normalize_web_urls,
+)
 
 
 class TargetValidationTests(unittest.TestCase):
@@ -22,6 +27,29 @@ class TargetValidationTests(unittest.TestCase):
             "1.2.3.4.5",
         ]:
             self.assertIsNone(normalize_target(target))
+
+    def test_normalize_decoy_list_accepts_hosts_and_one_me(self) -> None:
+        self.assertEqual(
+            normalize_decoy_list("192.168.56.20,LAB.example,ME"),
+            "192.168.56.20,lab.example,ME",
+        )
+
+    def test_normalize_decoy_list_rejects_unsafe_or_ambiguous_values(self) -> None:
+        for decoys in [
+            "",
+            "ME",
+            "localhost,,ME",
+            "localhost,localhost,ME",
+            "localhost,ME,ME",
+            "localhost,ME;id",
+            "localhost,ME/path",
+            "localhost,ME\n",
+            "a,b,c,d,e,f,ME",
+            "a,b,c,d,e,ME",
+        ]:
+            self.assertIsNone(normalize_decoy_list(decoys), decoys)
+
+        self.assertEqual(normalize_decoy_list("localhost,me"), "localhost,ME")
 
     def test_normalize_web_urls_expands_plain_allowed_targets(self) -> None:
         self.assertEqual(

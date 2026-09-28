@@ -58,6 +58,7 @@ The project focuses on local-first analysis. Scan and log data is processed on t
 - `bluejay/nmap.py` - Nmap and DNS collection workflows
 - `bluejay/http_checks.py` - HTTP/TLS/header/cookie checks
 - `bluejay/site_audit.py` - bounded same-origin crawling and form/link checks
+- `bluejay/repository_checks.py` - bounded local manifest and configuration checks
 - `bluejay/nuclei.py` - optional Nuclei execution and JSONL parsing
 - `bluejay/web.py` - public exports for web-related workflows
 - `bluejay/analysis.py` - local model file analysis and report saving
@@ -215,6 +216,16 @@ Example:
 /nuclei localhost info,low,medium
 ```
 
+### `/repo <directory>`
+
+Runs bounded, read-only checks against a directory inside the Blue Jay project folder. It inventories common dependency/build manifests, flags non-template `.env` files, and checks Dockerfiles for `latest` base-image tags and root-user defaults. A Markdown report is saved under `reports/`.
+
+Example:
+
+```txt
+/repo .
+```
+
 ### `/profile <quiet|quick|standard|deep|web|report> <target|all>`
 
 Runs repeatable workflows.
@@ -260,7 +271,10 @@ Options:
 - `version-light`: shortcut for `version-intensity 2`.
 - `version-all`: shortcut for `version-intensity 9`.
 - `reason`: include Nmap reason output.
+- `decoy <list>` or `-D <list>`: use up to five decoy hosts and exactly one `ME` in the first five positions. Each decoy must be a localhost/private LAN target or listed in `allowed_targets.txt`.
 - `timing <value>` or `-T0` to `-T4`: use `paranoid`, `sneaky`, `polite`, `normal`, `aggressive`, or `0` to `4`.
+
+Decoys are intended for authorized monitoring exercises, not anonymity. Nmap does not apply decoys to TCP connect or version-detection traffic, so those phases can still reveal the scanning host. Use reachable decoy hosts and verify Nmap's scan mode and privileges.
 
 Examples:
 
@@ -272,6 +286,8 @@ Examples:
 /scan localhost ports 22,80,443 reason
 /scan 192.168.1.1 top 1000 no-service timing polite
 /scan 192.168.1.1 quick udp top 50
+/scan 192.168.56.10 decoy 192.168.56.20,192.168.56.21,ME
+/scan 192.168.56.10 -D 192.168.56.20,ME -sV -T0
 /scan 192.168.1.1
 /scan scanme.nmap.org
 ```

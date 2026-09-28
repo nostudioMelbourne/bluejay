@@ -5,7 +5,9 @@ from .analysis import analyse_file
 from .constants import SCAN_PROFILES
 from .nmap import NmapScanOptions, normalize_timing, run_dig_lookup, run_safe_nmap_scan, validate_ports
 from .reports import generate_findings_report
-from .targets import normalize_target
+from .targets import normalize_decoy_list, normalize_target
+from .repository_checks import run_repository_checks
+from .utils import resolve_project_file
 from .web import run_nuclei_scan, run_site_audit, run_web_check
 
 
@@ -19,6 +21,23 @@ def cmd_analyse(args: list[str]) -> None:
     mode = args[1]
 
     analyse_file(file_path, mode)
+
+
+def cmd_repo(args: list[str]) -> None:
+    if len(args) != 1:
+        print("Usage: /repo <directory>")
+        print("Example: /repo .")
+        return
+
+    root = resolve_project_file(Path(args[0]))
+    if root is None:
+        print("Repository path blocked. Checks are limited to directories inside this project folder.")
+        return
+    if not root.exists() or not root.is_dir():
+        print(f"Repository directory not found: {args[0]}")
+        return
+
+    run_repository_checks(root)
 
 
 def cmd_dig(args: list[str]) -> None:
@@ -140,6 +159,7 @@ def print_scan_usage() -> None:
     print("  version-light        Shortcut for version-intensity 2")
     print("  version-all          Shortcut for version-intensity 9")
     print("  reason               Include Nmap reason output")
+    print("  decoy, -D <list>     Use up to five authorized decoys plus ME")
     print("  timing <0-4|name>, -T0..-T4")
     print("                       paranoid, sneaky, polite, normal, or aggressive")
     print("Examples:")
@@ -148,6 +168,7 @@ def print_scan_usage() -> None:
     print("  /scan localhost ports 22,80,443 reason")
     print("  /scan 192.168.1.1 top 1000 no-service timing polite")
     print("  /scan 192.168.1.1 quick udp top 50")
+    print("  /scan 192.168.56.10 decoy 192.168.56.20,ME")
 
 
 def parse_scan_options(args: list[str]) -> tuple[str, str, NmapScanOptions] | None:
@@ -213,6 +234,18 @@ def parse_scan_options(args: list[str]) -> tuple[str, str, NmapScanOptions] | No
         elif token == "reason":
             options.reason = True
             index += 1
+        elif token in {"decoy", "-d"}:
+            if index + 1 >= len(args):
+                print("Missing decoy list after 'decoy' or '-D'.")
+                return None
+
+            decoys = normalize_decoy_list(args[index + 1])
+            if decoys is None:
+                print("Decoys must be a comma-separated list of up to five hostnames or IPs with ME exactly once in the first five positions.")
+                return None
+
+            options.decoys = decoys
+            index += 2
         elif token == "ports":
             if index + 1 >= len(args):
                 print("Missing port list after 'ports'.")
