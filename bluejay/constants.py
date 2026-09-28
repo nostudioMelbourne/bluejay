@@ -85,7 +85,7 @@ COMMANDS = [
     ("/reports", "", "List recent reports"),
     ("/scan", "<target> [profile] [options]", "Run controlled Nmap scan"),
     ("/vuln", "<target>", "Run bounded Nmap vulnerability scripts"),
-    ("/dig", "<domain>", "Collect DNS records and analyse them"),
+    ("/dig", "<domain> [advanced|all]", "Collect DNS records and analyse them"),
     ("/web", "<host-or-url>", "Check HTTP, TLS, headers, and cookies"),
     ("/site", "<host-or-url>", "Audit a local website workflow"),
     ("/nuclei", "<host-or-url> [severity-list]", "Run optional bounded Nuclei scan"),

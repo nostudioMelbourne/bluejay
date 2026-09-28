@@ -170,14 +170,17 @@ With `prompt_toolkit` installed, Blue Jay opens an interactive selector. Without
 
 Shows the current chat transcript path and context settings.
 
-### `/dig <domain>`
+### `/dig <domain> [advanced|all]`
 
 Runs DNS lookups for common record types, saves the output in `logs/`, analyses it with the local model, and creates a Markdown report.
+
+Add `advanced` (or `all`) to also collect SOA and DNSSEC records, common SRV service records, DMARC, and DKIM selector hints. The report highlights SPF records found in the domain's TXT answers and looks up PTR records for up to four returned IP addresses. DKIM selectors vary by provider, so the selector checks are hints rather than a complete inventory. If `dig` is unavailable, Blue Jay saves local resolver addresses and notes that the extra records could not be collected.
 
 Example:
 
 ```txt
 /dig example.com
+/dig example.com advanced
 ```
 
 ### `/web <host-or-url>`
