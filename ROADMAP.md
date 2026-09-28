@@ -25,8 +25,8 @@ This roadmap tracks the next upgrades for turning Blue Jay into a stronger local
 
 ## Phase 4 - Repository Checks
 
-- Add project-aware checks for common local web app files.
-- Inspect dependency manifests such as `package.json`, `requirements.txt`, lockfiles, Dockerfiles, and environment templates.
+- [x] Add bounded project-aware checks for common local repository files.
+- [x] Inventory dependency manifests such as `package.json`, `requirements.txt`, and lockfiles, with basic Dockerfile and environment-file checks.
 - Optionally integrate tools such as `npm audit`, `pip-audit`, `trivy`, and `semgrep` when installed.
 
 ## Phase 5 - Report Quality

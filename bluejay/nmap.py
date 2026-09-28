@@ -3,13 +3,18 @@ import shutil
 import socket
 import subprocess
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 
 from .constants import DIG_TIMEOUT_SECONDS, LOGS_DIR, NMAP_TIMEOUT_SECONDS, SCANS_DIR
 from .storage import extract_cves, make_finding, record_findings, record_scan, upsert_asset
-from .targets import is_allowed_target, is_valid_hostname, normalize_target
+from .targets import (
+    is_allowed_target,
+    is_valid_hostname,
+    normalize_decoy_list,
+    normalize_target,
+)
 from .tooling import missing_tool_message
 from .utils import slugify
 
@@ -23,6 +28,7 @@ class NmapScanOptions:
     version_intensity: int | None = None
     reason: bool = False
     timing: str | None = None
+    decoys: str | None = None
 
 
 TIMING_ALIASES = {
@@ -239,6 +245,7 @@ def effective_scan_options(scan_profile: str, options: NmapScanOptions | None = 
             version_intensity=options.version_intensity,
             reason=options.reason,
             timing=options.timing,
+            decoys=options.decoys,
         )
 
     if result.version_intensity is not None and result.service_detection is not False:
@@ -297,6 +304,12 @@ def build_nmap_command(
     elif effective_options.top_ports:
         command.extend(["--top-ports", str(effective_options.top_ports)])
 
+    if effective_options.decoys is not None:
+        decoys = normalize_decoy_list(effective_options.decoys)
+        if decoys is None:
+            raise ValueError("Invalid Nmap decoy list.")
+        command.extend(["-D", decoys])
+
     if scan_profile == "quiet":
         command.extend(["--max-retries", "2", "--scan-delay", "200ms", "--host-timeout", "120s"])
     elif scan_profile == "quick":
@@ -322,6 +335,11 @@ def build_nmap_command(
         description = f"{protocol_label} vulnerability-script scan, {port_label}, {service_label}{reason_label}"
     else:
         description = f"{scan_profile} {protocol_label} scan, {port_label}, {service_label}{reason_label}"
+    if effective_options.decoys:
+        decoy_count = len(effective_options.decoys.split(",")) - 1
+        description += f", decoys enabled ({decoy_count} hosts plus ME)"
+        if effective_options.service_detection:
+            description += "; version-detection traffic is not cloaked"
 
     metadata = {
         "protocol": effective_options.protocol,
@@ -331,6 +349,7 @@ def build_nmap_command(
         "version_intensity": effective_options.version_intensity,
         "reason": effective_options.reason,
         "timing": effective_options.timing,
+        "decoys": effective_options.decoys or "",
     }
     return command, description, metadata
 
@@ -362,6 +381,23 @@ def run_safe_nmap_scan(
         print("Add authorised targets to allowed_targets.txt, one per line.")
         print("Example allowed target: scanme.nmap.org")
         return None
+
+    if options is not None and options.decoys is not None:
+        decoys = normalize_decoy_list(options.decoys)
+        if decoys is None:
+            print("Decoy list blocked. Use up to five authorized hosts and include ME exactly once in the first five positions.")
+            return None
+
+        decoy_hosts = [host for host in decoys.split(",") if host != "ME"]
+        if clean_target in decoy_hosts:
+            print("Decoy list blocked. The scan target cannot also be listed as a decoy.")
+            return None
+        if any(not is_allowed_target(host) for host in decoy_hosts):
+            print("Decoy target blocked.")
+            print("Each decoy must be localhost, a private LAN address, or listed in allowed_targets.txt.")
+            return None
+
+        options = replace(options, decoys=decoys)
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     safe_target = slugify(clean_target)

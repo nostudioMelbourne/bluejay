@@ -90,6 +90,7 @@ COMMANDS = [
     ("/site", "<host-or-url>", "Audit a local website workflow"),
     ("/nuclei", "<host-or-url> [severity-list]", "Run optional bounded Nuclei scan"),
     ("/profile", "<quiet|quick|standard|deep|web|report> <target|all>", "Run repeatable workflow"),
+    ("/repo", "<directory>", "Check local repository manifests and configuration"),
     ("/analyse", "<file> <mode>", "Analyse a saved file"),
     ("/assets", "", "List known assets"),
     ("/asset", "<target>", "Show one asset"),

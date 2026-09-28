@@ -66,6 +66,7 @@ flowchart TB
 | `bluejay.nmap` | Runs controlled Nmap scans and parses XML output into structured findings. |
 | `bluejay.http_checks` | Performs HTTP, TLS, security-header, and cookie checks. |
 | `bluejay.site_audit` | Runs bounded same-origin crawling and website checks. |
+| `bluejay.repository_checks` | Inventories repository manifests and checks selected local configuration patterns. |
 | `bluejay.nuclei` | Runs optional bounded Nuclei scans and parses JSONL output. |
 | `bluejay.storage` | Stores assets, scans, evidence, and findings in SQLite. |
 | `bluejay.analysis` | Sends scan/log evidence to local Ollama models for defensive analysis. |

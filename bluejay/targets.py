@@ -7,6 +7,7 @@ from .constants import ALLOWED_TARGETS_FILE
 
 CONTROL_CHARACTER_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
 TARGET_DELIMITERS = {"/", "\\", ":", "?", "#", "@"}
+MAX_DECOY_HOSTS = 5
 
 
 def has_unsafe_characters(value: str) -> bool:
@@ -79,6 +80,39 @@ def normalize_target(target: str) -> str | None:
         return clean_target
 
     return None
+
+
+def normalize_decoy_list(decoy_spec: str) -> str | None:
+    """Validate and normalize an explicit Nmap decoy list containing ME."""
+    if has_unsafe_characters(decoy_spec):
+        return None
+
+    entries = decoy_spec.split(",")
+    if len(entries) < 2 or len(entries) > MAX_DECOY_HOSTS + 1:
+        return None
+
+    normalized_entries: list[str] = []
+    seen: set[str] = set()
+    me_count = 0
+
+    for entry in entries:
+        if entry.upper() == "ME":
+            normalized_entry = "ME"
+            me_count += 1
+        else:
+            normalized_entry = normalize_target(entry)
+            if normalized_entry is None:
+                return None
+
+        if normalized_entry in seen:
+            return None
+        seen.add(normalized_entry)
+        normalized_entries.append(normalized_entry)
+
+    if me_count != 1 or normalized_entries.index("ME") >= 5:
+        return None
+
+    return ",".join(normalized_entries)
 
 
 def is_private_or_local_target(target: str) -> bool:
