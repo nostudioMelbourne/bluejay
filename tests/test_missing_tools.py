@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import bluejay.dns as dns
 import bluejay.model as model
 import bluejay.nmap as nmap
 from bluejay.tooling import missing_tool_message
@@ -60,14 +61,14 @@ class MissingToolRuntimeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             with (
-                patch.object(nmap, "LOGS_DIR", Path(temporary_directory)),
-                patch.object(nmap.shutil, "which", return_value=None),
-                patch.object(nmap.socket, "getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 0))]),
-                patch.object(nmap, "upsert_asset"),
-                patch.object(nmap, "record_scan"),
+                patch.object(dns, "LOGS_DIR", Path(temporary_directory)),
+                patch.object(dns.shutil, "which", return_value=None),
+                patch.object(dns.socket, "getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 0))]),
+                patch.object(dns, "upsert_asset"),
+                patch.object(dns, "record_scan"),
                 contextlib.redirect_stdout(buffer),
             ):
-                result = nmap.run_dig_lookup("example.com")
+                result = dns.run_dig_lookup("example.com")
 
         output = buffer.getvalue()
         self.assertIsNotNone(result)

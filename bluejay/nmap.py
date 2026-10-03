@@ -1,18 +1,15 @@
 import re
-import shutil
-import socket
 import subprocess
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, replace
 from datetime import datetime
-from ipaddress import ip_address
 from pathlib import Path
 
-from .constants import DIG_TIMEOUT_SECONDS, LOGS_DIR, NMAP_TIMEOUT_SECONDS, SCANS_DIR
-from .storage import extract_cves, make_finding, record_findings, record_scan, upsert_asset
+from .constants import NMAP_TIMEOUT_SECONDS, SCANS_DIR
+from .dns import run_dig_lookup as run_dig_lookup
+from .storage import extract_cves, make_finding, record_findings, record_scan
 from .targets import (
     is_allowed_target,
-    is_valid_hostname,
     normalize_decoy_list,
     normalize_target,
 )
@@ -452,130 +449,4 @@ def run_safe_nmap_scan(
     print(f"Scan saved to: {output_path}")
     print(f"Structured scan saved to: {xml_output_path}")
     record_findings(parse_nmap_xml(xml_output_path, scan_profile), str(xml_output_path))
-    return output_path
-
-
-def run_dig_lookup(target: str, mode: str = "basic") -> Path | None:
-    clean_target = normalize_target(target)
-
-    if clean_target is None or not is_valid_hostname(clean_target):
-        print("DNS lookup needs a plain hostname, for example example.com.")
-        return None
-    if mode not in {"basic", "advanced", "all"}:
-        raise ValueError(f"Unknown DNS lookup mode: {mode}")
-
-    advanced = mode in {"advanced", "all"}
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    suffix = "-advanced" if advanced else ""
-    output_path = LOGS_DIR / f"dns-{slugify(clean_target)}{suffix}-{timestamp}.txt"
-    record_types = ["A", "AAAA", "MX", "NS", "TXT", "CAA"]
-    sections = [f"# DNS lookup for {clean_target}", f"# Created {timestamp}", ""]
-
-    dig_available = bool(shutil.which("dig"))
-    if dig_available:
-        queries = [(record_type, clean_target, record_type) for record_type in record_types]
-        if advanced:
-            queries.extend([
-                ("SOA", clean_target, "SOA"),
-                ("DNSKEY", clean_target, "DNSKEY"),
-                ("DS", clean_target, "DS"),
-                ("SRV _sip._tcp", f"_sip._tcp.{clean_target}", "SRV"),
-                ("SRV _submission._tcp", f"_submission._tcp.{clean_target}", "SRV"),
-                ("DMARC", f"_dmarc.{clean_target}", "TXT"),
-                ("DKIM _domainkey", f"_domainkey.{clean_target}", "TXT"),
-                ("DKIM default selector", f"default._domainkey.{clean_target}", "TXT"),
-                ("DKIM selector1 TXT", f"selector1._domainkey.{clean_target}", "TXT"),
-                ("DKIM selector1 CNAME", f"selector1._domainkey.{clean_target}", "CNAME"),
-                ("DKIM selector2 TXT", f"selector2._domainkey.{clean_target}", "TXT"),
-                ("DKIM selector2 CNAME", f"selector2._domainkey.{clean_target}", "CNAME"),
-            ])
-
-        spf_records: list[str] = []
-        ptr_addresses: list[str] = []
-        for heading, name, record_type in queries:
-            command = ["dig", "+nocmd", name, record_type, "+noall", "+answer"]
-            try:
-                result = subprocess.run(
-                    command,
-                    text=True,
-                    capture_output=True,
-                    timeout=DIG_TIMEOUT_SECONDS,
-                )
-            except subprocess.TimeoutExpired:
-                sections.extend([f"## {heading}", "dig timed out.", ""])
-                continue
-
-            sections.append(f"## {heading}")
-            sections.append(result.stdout.strip() or "No answer records returned.")
-            if result.stderr.strip():
-                sections.append(f"stderr: {result.stderr.strip()}")
-            sections.append("")
-
-            if advanced and heading == "TXT":
-                spf_records = [line for line in result.stdout.splitlines() if "v=spf1" in line.lower()]
-            if advanced and record_type in {"A", "AAAA"}:
-                for line in result.stdout.splitlines():
-                    fields = line.split()
-                    if len(fields) < 2 or fields[-2].upper() != record_type:
-                        continue
-                    try:
-                        address = str(ip_address(fields[-1]))
-                    except ValueError:
-                        continue
-                    if address not in ptr_addresses and len(ptr_addresses) < 4:
-                        ptr_addresses.append(address)
-
-        if advanced:
-            sections.extend(["## SPF hints", *(spf_records or ["No SPF record found in the domain TXT answers."]), ""])
-            sections.extend(["## DKIM selector coverage", "Only common selectors were queried; other selectors may exist.", ""])
-            if not ptr_addresses:
-                sections.extend(["## PTR", "No A or AAAA addresses returned for reverse lookup.", ""])
-            for address in ptr_addresses:
-                command = ["dig", "+nocmd", "-x", address, "+noall", "+answer"]
-                try:
-                    result = subprocess.run(
-                        command,
-                        text=True,
-                        capture_output=True,
-                        timeout=DIG_TIMEOUT_SECONDS,
-                    )
-                except subprocess.TimeoutExpired:
-                    sections.extend([f"## PTR {address}", "dig timed out.", ""])
-                    continue
-                sections.extend([f"## PTR {address}", result.stdout.strip() or "No answer records returned."])
-                if result.stderr.strip():
-                    sections.append(f"stderr: {result.stderr.strip()}")
-                sections.append("")
-    else:
-        guidance = missing_tool_message("dig", optional=True)
-        print(guidance)
-        print("Using the local DNS resolver instead.")
-        sections.extend([guidance, "Falling back to local resolver output.", ""])
-        if advanced:
-            sections.extend(["Advanced DNS records require dig and were not collected.", ""])
-        try:
-            addresses = sorted(
-                {
-                    result[4][0]
-                    for result in socket.getaddrinfo(clean_target, None)
-                }
-            )
-        except socket.gaierror as error:
-            sections.append(f"Resolver error: {error}")
-        else:
-            sections.append("## Resolver Addresses")
-            sections.extend(addresses or ["No addresses returned."])
-
-    output_path.write_text("\n".join(sections), encoding="utf-8")
-    upsert_asset(clean_target, asset_type="domain")
-    record_scan(
-        clean_target,
-        "dns",
-        "dig" if dig_available else "resolver",
-        "completed",
-        ["dig", clean_target, ",".join(record_types + (["advanced"] if advanced else []))],
-        output_path,
-        "",
-    )
-    print(f"DNS lookup saved to: {output_path}")
     return output_path
