@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import bluejay.cmd_workflows as workflows
+import bluejay.dns as dns
 import bluejay.nmap as nmap
 
 
@@ -36,13 +37,13 @@ class AdvancedDigTests(unittest.TestCase):
     def test_basic_lookup_preserves_six_original_queries(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             with (
-                patch.object(nmap, "LOGS_DIR", Path(directory)),
-                patch.object(nmap.shutil, "which", return_value="/usr/bin/dig"),
-                patch.object(nmap.subprocess, "run", return_value=SimpleNamespace(stdout="", stderr="")) as run,
-                patch.object(nmap, "upsert_asset"),
-                patch.object(nmap, "record_scan"),
+                patch.object(dns, "LOGS_DIR", Path(directory)),
+                patch.object(dns.shutil, "which", return_value="/usr/bin/dig"),
+                patch.object(dns.subprocess, "run", return_value=SimpleNamespace(stdout="", stderr="")) as run,
+                patch.object(dns, "upsert_asset"),
+                patch.object(dns, "record_scan"),
             ):
-                result = nmap.run_dig_lookup("example.com")
+                result = dns.run_dig_lookup("example.com")
                 content = result.read_text(encoding="utf-8")
 
         self.assertIn("dns-example.com-", result.name)
@@ -68,13 +69,13 @@ class AdvancedDigTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             with (
-                patch.object(nmap, "LOGS_DIR", Path(directory)),
-                patch.object(nmap.shutil, "which", return_value="/usr/bin/dig"),
-                patch.object(nmap.subprocess, "run", side_effect=dig_result) as run,
-                patch.object(nmap, "upsert_asset"),
-                patch.object(nmap, "record_scan") as record_scan,
+                patch.object(dns, "LOGS_DIR", Path(directory)),
+                patch.object(dns.shutil, "which", return_value="/usr/bin/dig"),
+                patch.object(dns.subprocess, "run", side_effect=dig_result) as run,
+                patch.object(dns, "upsert_asset"),
+                patch.object(dns, "record_scan") as record_scan,
             ):
-                result = nmap.run_dig_lookup("example.com", mode="advanced")
+                result = dns.run_dig_lookup("example.com", mode="advanced")
                 content = result.read_text(encoding="utf-8")
 
         commands = [call.args[0] for call in run.call_args_list]
@@ -96,21 +97,24 @@ class AdvancedDigTests(unittest.TestCase):
     def test_advanced_lookup_falls_back_when_dig_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             with (
-                patch.object(nmap, "LOGS_DIR", Path(directory)),
-                patch.object(nmap.shutil, "which", return_value=None),
-                patch.object(nmap.socket, "getaddrinfo", return_value=[(None, None, None, None, ("192.0.2.10", 0))]),
-                patch.object(nmap.subprocess, "run") as run,
-                patch.object(nmap, "upsert_asset"),
-                patch.object(nmap, "record_scan") as record_scan,
+                patch.object(dns, "LOGS_DIR", Path(directory)),
+                patch.object(dns.shutil, "which", return_value=None),
+                patch.object(dns.socket, "getaddrinfo", return_value=[(None, None, None, None, ("192.0.2.10", 0))]),
+                patch.object(dns.subprocess, "run") as run,
+                patch.object(dns, "upsert_asset"),
+                patch.object(dns, "record_scan") as record_scan,
                 contextlib.redirect_stdout(io.StringIO()),
             ):
-                result = nmap.run_dig_lookup("example.com", mode="all")
+                result = dns.run_dig_lookup("example.com", mode="all")
                 content = result.read_text(encoding="utf-8")
 
         run.assert_not_called()
         self.assertIn("## Resolver Addresses\n192.0.2.10", content)
         self.assertIn("Advanced DNS records require dig", content)
         self.assertEqual(record_scan.call_args.args[2], "resolver")
+
+    def test_nmap_keeps_dns_lookup_compatibility_export(self) -> None:
+        self.assertIs(nmap.run_dig_lookup, dns.run_dig_lookup)
 
 
 if __name__ == "__main__":

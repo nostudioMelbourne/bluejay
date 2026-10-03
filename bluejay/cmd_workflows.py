@@ -3,7 +3,8 @@ from pathlib import Path
 
 from .analysis import analyse_file
 from .constants import SCAN_PROFILES
-from .nmap import NmapScanOptions, normalize_timing, run_dig_lookup, run_safe_nmap_scan, validate_ports
+from .dns import run_dig_lookup
+from .nmap import NmapScanOptions, normalize_timing, run_safe_nmap_scan, validate_ports
 from .reports import generate_findings_report
 from .targets import normalize_decoy_list, normalize_target
 from .repository_checks import run_repository_checks
