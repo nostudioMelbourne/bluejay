@@ -1,9 +1,12 @@
+import contextlib
+import io
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
-from bluejay.cmd_workflows import parse_scan_options
+import bluejay.cmd_workflows as workflows
+import bluejay.scan_options as scan_options
 from bluejay.nmap import (
     NmapScanOptions,
     build_nmap_command,
@@ -11,6 +14,9 @@ from bluejay.nmap import (
     normalize_timing,
     validate_ports,
 )
+
+
+parse_scan_options = scan_options.parse_scan_options
 
 
 class NmapOptionTests(unittest.TestCase):
@@ -65,9 +71,44 @@ class NmapOptionTests(unittest.TestCase):
             self.assertEqual(options.decoys, "192.168.56.20,ME")
 
     def test_parse_scan_options_rejects_invalid_decoy_lists(self) -> None:
-        for decoys in ["", "ME", "localhost,,ME", "localhost,ME;id", "localhost,ME/path"]:
-            self.assertIsNone(parse_scan_options(["127.0.0.1", "decoy", decoys]))
-        self.assertIsNone(parse_scan_options(["127.0.0.1", "-D"]))
+        with contextlib.redirect_stdout(io.StringIO()):
+            for decoys in ["", "ME", "localhost,,ME", "localhost,ME;id", "localhost,ME/path"]:
+                self.assertIsNone(parse_scan_options(["127.0.0.1", "decoy", decoys]))
+            self.assertIsNone(parse_scan_options(["127.0.0.1", "-D"]))
+
+    def test_parse_scan_options_accepts_assignment_forms(self) -> None:
+        parsed = parse_scan_options(
+            ["localhost", "ports=22,80", "top=25", "--version-intensity=6", "timing=polite"]
+        )
+
+        self.assertIsNotNone(parsed)
+        _, _, options = parsed
+        self.assertIsNone(options.ports)
+        self.assertEqual(options.top_ports, 25)
+        self.assertEqual(options.version_intensity, 6)
+        self.assertEqual(options.timing, "2")
+
+    def test_parse_scan_options_rejects_invalid_and_missing_values(self) -> None:
+        invalid_arguments = [
+            ["localhost", "ports"],
+            ["localhost", "ports=0"],
+            ["localhost", "top"],
+            ["localhost", "top=5001"],
+            ["localhost", "version-intensity"],
+            ["localhost", "version-intensity=10"],
+            ["localhost", "timing"],
+            ["localhost", "timing=fastest"],
+            ["localhost", "unknown-option"],
+        ]
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            for arguments in invalid_arguments:
+                with self.subTest(arguments=arguments):
+                    self.assertIsNone(parse_scan_options(arguments))
+
+    def test_command_workflows_keeps_parser_compatibility_export(self) -> None:
+        self.assertIs(workflows.parse_scan_options, scan_options.parse_scan_options)
+        self.assertIs(workflows.print_scan_usage, scan_options.print_scan_usage)
 
     def test_build_nmap_command_includes_decoys_in_command_description_and_metadata(self) -> None:
         command, description, metadata = build_nmap_command(
