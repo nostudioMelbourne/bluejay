@@ -2,6 +2,7 @@ import hashlib
 import json
 import re
 import sqlite3
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
@@ -285,6 +286,31 @@ def load_findings() -> list[dict]:
         ).fetchall()
 
     return [finding_from_row(row) for row in rows]
+
+
+def update_finding_status(finding_id: str, status: str) -> bool:
+    if status not in {"open", "resolved"}:
+        raise ValueError("Finding status must be open or resolved.")
+
+    with closing(db_connect()) as connection, connection:
+        result = connection.execute(
+            "UPDATE findings SET status = ?, updated_at = ? WHERE id = ?",
+            (status, now_timestamp(), finding_id),
+        )
+        if result.rowcount == 0:
+            return False
+
+        findings = [
+            finding_from_row(row)
+            for row in connection.execute("SELECT * FROM findings").fetchall()
+        ]
+
+    FINDINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with FINDINGS_FILE.open("w", encoding="utf-8") as findings_file:
+        for finding in findings:
+            findings_file.write(json.dumps(finding, sort_keys=True) + "\n")
+
+    return True
 
 
 def write_findings(findings: list[dict]) -> None:

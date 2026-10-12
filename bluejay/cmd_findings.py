@@ -7,9 +7,8 @@ from .config import configured_model
 from .model import run_ollama
 from .nmap import run_safe_nmap_scan
 from .reports import generate_findings_report
-from .storage import filter_findings, load_assets, load_findings, load_scan_history, write_findings
+from .storage import filter_findings, load_assets, load_findings, load_scan_history, update_finding_status
 from .ui import ui_markdown, ui_panel, ui_print, ui_status, ui_table
-from .utils import now_timestamp
 from .web import run_nuclei_scan, run_web_check
 
 
@@ -488,9 +487,10 @@ def cmd_set_finding_status(args: list[str], status: str, command_name: str) -> N
         print("Finding not found or ID prefix is ambiguous.")
         return
 
-    finding["status"] = status
-    finding["updated_at"] = now_timestamp()
-    write_findings(findings)
+    if not update_finding_status(str(finding["id"]), status):
+        print("Finding not found.")
+        return
+
     print(f"Finding {finding.get('id')} marked {status}.")
 
 

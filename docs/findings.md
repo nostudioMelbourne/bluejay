@@ -65,7 +65,7 @@ This provides history without filling the finding list with identical rows.
 - Nmap script findings rerun the vulnerability profile
 - other findings rerun a standard Nmap scan
 
-Review the new evidence before resolving the original finding. If the same finding is observed again later, deduplication reopens it automatically.
+Review the new evidence before resolving the original finding. Resolving or reopening a finding changes its status and keeps its stored observations and occurrence history. If the same finding is observed again later, deduplication reopens it automatically.
 
 ## Baselines and change detection
 
