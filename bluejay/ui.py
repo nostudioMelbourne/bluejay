@@ -196,13 +196,21 @@ def setup_readline() -> None:
             pass
 
     def complete(text: str, state: int) -> str | None:
+        if readline.get_begidx() != 0:
+            return None
+
         options = [command for command in COMMAND_NAMES if command.startswith(text)]
         if state < len(options):
             return options[state]
         return None
 
     readline.set_completer(complete)
-    readline.parse_and_bind("tab: complete")
+    # Keep the slash in the word passed to the command completer.
+    readline.set_completer_delims(readline.get_completer_delims().replace("/", ""))
+    if "libedit" in (readline.__doc__ or ""):
+        readline.parse_and_bind("bind ^I rl_complete")
+    else:
+        readline.parse_and_bind("tab: complete")
     atexit.register(readline.write_history_file, str(HISTORY_FILE))
 
 
