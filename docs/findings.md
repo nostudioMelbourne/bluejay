@@ -65,6 +65,8 @@ This provides history without filling the finding list with identical rows.
 - Nmap script findings rerun the vulnerability profile
 - other findings rerun a standard Nmap scan
 
+When the selected workflow cannot produce an evidence file, `/retest` reports that it did not complete. Otherwise it shows the saved evidence path. The file can contain connection errors or failed checks, so review it before deciding that the finding is fixed.
+
 Review the new evidence before resolving the original finding. Resolving or reopening a finding changes its status and keeps its stored observations and occurrence history. If the same finding is observed again later, deduplication reopens it automatically.
 
 ## Baselines and change detection
