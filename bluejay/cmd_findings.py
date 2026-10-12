@@ -359,15 +359,20 @@ def cmd_retest(args: list[str]) -> None:
     print(f"Retesting finding {finding.get('id')} with the closest safe check.")
 
     if finding_type.startswith("web-") or finding_type.startswith("tls-"):
-        run_web_check(str(metadata.get("url") or target))
+        evidence_path = run_web_check(str(metadata.get("url") or target))
     elif finding_type == "nuclei-template":
-        run_nuclei_scan(str(metadata.get("matched_at") or target))
+        evidence_path = run_nuclei_scan(str(metadata.get("matched_at") or target))
     elif finding_type == "nmap-script":
-        run_safe_nmap_scan(target, scan_profile="vulnerability")
+        evidence_path = run_safe_nmap_scan(target, scan_profile="vulnerability")
     else:
-        run_safe_nmap_scan(target, scan_profile="standard")
+        evidence_path = run_safe_nmap_scan(target, scan_profile="standard")
 
-    print("Retest complete. Review /findings and resolve the original finding when evidence confirms the fix.")
+    if evidence_path is None:
+        print("Retest did not complete. Review the messages above before retrying.")
+        return
+
+    print(f"Retest evidence saved to: {evidence_path}")
+    print("Review /findings and resolve the original finding when evidence confirms the fix.")
 
 
 def cmd_baseline(args: list[str]) -> None:
